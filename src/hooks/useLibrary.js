@@ -202,6 +202,16 @@ export function useLibrary() {
     setQueue([]);
   }, []);
 
+  const clearRecentlyAdded = useCallback(() => {
+    // Reset addedAt dates for all items to very old dates so they won't show in recentlyAdded
+    setLibrary((prev) =>
+      prev.map((item) => ({
+        ...item,
+        addedAt: new Date(0).toISOString(), // Jan 1, 1970
+      }))
+    );
+  }, []);
+
   // Derived collections
   const movies = library.filter((i) => i.type === "movie");
   const tvShows = library.filter((i) => i.type === "tv" || i.type === "anime");
@@ -250,6 +260,7 @@ export function useLibrary() {
     updateItem,
     removeItem,
     clearLibrary,
+    clearRecentlyAdded,
     movies,
     tvShows,
     series,

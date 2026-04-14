@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { IconPlay, IconInfo } from "./Icons";
 
-export default function Hero({ item, onInfo }) {
+export default function Hero({ item, onInfo, onPlay }) {
   const [loaded, setLoaded] = useState(false);
   if (!item) return null;
 
@@ -11,6 +11,12 @@ export default function Hero({ item, onInfo }) {
     : item.genre
       ? [item.genre]
       : [];
+
+  const handlePlay = () => {
+    if (onPlay && item.id) {
+      onPlay(item.id);
+    }
+  };
 
   return (
     <div

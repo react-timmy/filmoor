@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Hero from "../components/Hero";
 import {
   Carousel,
@@ -19,19 +20,38 @@ import {
 
 export default function Home({
   library,
+  localLibrary,
   movies,
   series,
   watching,
   recentlyWatched,
   recentlyAdded,
   updateItem,
+  clearRecentlyAdded,
+  clearRecentlyAddedLocal,
   processFiles,
 }) {
+  const navigate = useNavigate();
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedSeries, setSelectedSeries] = useState(null);
   const [filter, setFilter] = useState("all"); // all | movies | shows
 
-  if (library.length === 0) return <Onboarding onFiles={processFiles} />;
+  // Handler for playing local files
+  const handlePlayLocal = (fileId) => {
+    navigate(`/local-player/${fileId}`);
+  };
+
+  // Handler for playing or viewing items (local or API)
+  const handleItemClick = (item, isLocal = false) => {
+    if (isLocal || item.isLocal) {
+      handlePlayLocal(item.id);
+    } else {
+      setSelectedItem(item);
+    }
+  };
+
+  if (library.length === 0 && (!localLibrary || localLibrary.length === 0))
+    return <Onboarding onFiles={processFiles} />;
 
   const heroItem =
     [...library]
@@ -56,7 +76,7 @@ export default function Home({
       }}
     >
       {/* Hero — starts at top, bleeds edge to edge */}
-      <Hero item={heroItem} onInfo={setSelectedItem} />
+      <Hero item={heroItem} onInfo={setSelectedItem} onPlay={handlePlayLocal} />
 
       {/* Max-width container for desktop */}
       <div style={{ maxWidth: "1400px", margin: "0 auto", width: "100%" }}>
@@ -141,7 +161,12 @@ export default function Home({
         {watching.length > 0 && (
           <Carousel title="Continue Watching" icon={IconPause}>
             {watching.map((item) => (
-              <WideCard key={item.id} item={item} onClick={setSelectedItem} />
+              <WideCard
+                key={item.id}
+                item={item}
+                onClick={(i) => handleItemClick(i, i.isLocal)}
+                onPlay={handlePlayLocal}
+              />
             ))}
           </Carousel>
         )}
@@ -150,7 +175,12 @@ export default function Home({
         {recentlyWatched.length > 0 && (
           <Carousel title="Recently Watched" icon={IconClock}>
             {recentlyWatched.map((item) => (
-              <WideCard key={item.id} item={item} onClick={setSelectedItem} />
+              <WideCard
+                key={item.id}
+                item={item}
+                onClick={(i) => handleItemClick(i, i.isLocal)}
+                onPlay={handlePlayLocal}
+              />
             ))}
           </Carousel>
         )}
@@ -159,7 +189,12 @@ export default function Home({
         {showMovies && movies.length > 0 && (
           <Carousel title="Movies" icon={IconFilm}>
             {movies.map((item) => (
-              <PosterCard key={item.id} item={item} onClick={setSelectedItem} />
+              <PosterCard
+                key={item.id}
+                item={item}
+                onClick={(i) => handleItemClick(i, i.isLocal)}
+                onPlay={handlePlayLocal}
+              />
             ))}
           </Carousel>
         )}
@@ -177,9 +212,55 @@ export default function Home({
         {recentlyAdded.length > 0 && (
           <Carousel title="Recently Added" icon={IconSparkle}>
             {recentlyAdded.map((item) => (
-              <PosterCard key={item.id} item={item} onClick={setSelectedItem} />
+              <PosterCard
+                key={item.id}
+                item={item}
+                onClick={(i) => handleItemClick(i, i.isLocal)}
+                onPlay={handlePlayLocal}
+              />
             ))}
           </Carousel>
+        )}
+
+        {/* Clear recently added button — separate from carousel */}
+        {recentlyAdded.length > 0 && (
+          <div
+            style={{
+              paddingLeft: "var(--page-pad)",
+              paddingRight: "var(--page-pad)",
+              marginBottom: 20,
+              marginTop: -20,
+            }}
+          >
+            <button
+              onClick={() => {
+                clearRecentlyAdded();
+                if (clearRecentlyAddedLocal) clearRecentlyAddedLocal();
+              }}
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                color: "var(--text2)",
+                padding: "6px 14px",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                fontFamily: "var(--font-body)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                e.currentTarget.style.color = "var(--text)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                e.currentTarget.style.color = "var(--text2)";
+              }}
+            >
+              Clear
+            </button>
+          </div>
         )}
 
         {/* Modals */}

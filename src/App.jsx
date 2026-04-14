@@ -7,9 +7,12 @@ import QueuePanel from "./components/QueuePanel";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import Library from "./pages/Library";
+import LocalLibrary from "./pages/LocalLibrary";
+import LocalPlayer from "./pages/LocalPlayer";
 import Auth from "./pages/Auth";
 import Profiles from "./pages/Profiles";
 import { useLibrary } from "./hooks/useLibrary";
+import { useLocalLibrary } from "./hooks/useLocalLibrary";
 
 function AppContent() {
   const { user, selectedProfile } = useAuth();
@@ -21,12 +24,16 @@ function AppContent() {
     processFiles,
     updateItem,
     removeItem,
+    clearRecentlyAdded,
     movies,
     series,
     watching,
     recentlyWatched,
     recentlyAdded,
   } = useLibrary();
+
+  const { localLibrary, addLocalFiles, clearRecentlyAddedLocal } =
+    useLocalLibrary();
 
   const [queueDismissed, setQueueDismissed] = useState(false);
 
@@ -35,6 +42,12 @@ function AppContent() {
   const handleNewFiles = (files) => {
     setQueueDismissed(false);
     processFiles(files);
+    // Also add files to local library
+    addLocalFiles(files);
+  };
+
+  const handleLocalUpload = (files) => {
+    addLocalFiles(files);
   };
 
   return (
@@ -42,6 +55,7 @@ function AppContent() {
       {user && selectedProfile && (
         <Navbar
           onScan={handleNewFiles}
+          onLocalUpload={handleLocalUpload}
           isProcessing={isProcessing}
           processingCount={processingCount}
           library={library}
@@ -65,12 +79,15 @@ function AppContent() {
               {selectedProfile ? (
                 <Home
                   library={library}
+                  localLibrary={localLibrary}
                   movies={movies}
                   series={series}
                   watching={watching}
                   recentlyWatched={recentlyWatched}
                   recentlyAdded={recentlyAdded}
                   updateItem={updateItem}
+                  clearRecentlyAdded={clearRecentlyAdded}
+                  clearRecentlyAddedLocal={clearRecentlyAddedLocal}
                   processFiles={handleNewFiles}
                 />
               ) : (
@@ -91,6 +108,30 @@ function AppContent() {
                   updateItem={updateItem}
                   removeItem={removeItem}
                 />
+              ) : (
+                <Navigate to="/profiles" replace />
+              )}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/local-library"
+          element={
+            <ProtectedRoute>
+              {selectedProfile ? (
+                <LocalLibrary />
+              ) : (
+                <Navigate to="/profiles" replace />
+              )}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/local-player/:fileId"
+          element={
+            <ProtectedRoute>
+              {selectedProfile ? (
+                <LocalPlayer localLibrary={localLibrary} />
               ) : (
                 <Navigate to="/profiles" replace />
               )}
