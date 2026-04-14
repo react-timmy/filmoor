@@ -15,39 +15,40 @@ import { useLibrary } from "./hooks/useLibrary";
 import { useLocalLibrary } from "./hooks/useLocalLibrary";
 
 function AppContent() {
-  const { user, selectedProfile } = useAuth();
-  const {
-    library,
-    queue,
-    isProcessing,
-    processingCount,
-    processFiles,
-    updateItem,
-    removeItem,
-    clearRecentlyAdded,
-    movies,
-    series,
-    watching,
-    recentlyWatched,
-    recentlyAdded,
-  } = useLibrary();
-
-  const { localLibrary, addLocalFiles, clearRecentlyAddedLocal } =
-    useLocalLibrary();
-
+  const { user, selectedProfile, loading } = useAuth();
   const [queueDismissed, setQueueDismissed] = useState(false);
+
+  // Always call hooks (they handle null profileId internally)
+  const libraryHooks = useLibrary();
+  const localLibraryHooks = useLocalLibrary();
+
+  // Provide default empty values if hooks aren't initialized
+  const {
+    library = [],
+    queue = [],
+    isProcessing = false,
+    processingCount = 0,
+    processFiles = () => {},
+    updateItem = () => {},
+    removeItem = () => {},
+    clearRecentlyAdded = () => {},
+    clearRecentlyAddedExceptLast = () => {},
+    movies = [],
+    series = [],
+    watching = [],
+    recentlyWatched = [],
+    recentlyAdded = [],
+  } = libraryHooks || {};
+
+  const { localLibrary = [], addLocalFiles = () => {}, clearRecentlyAddedLocal = () => {} } =
+    localLibraryHooks || {};
 
   const showQueue = queue.length > 0 && !queueDismissed;
 
   const handleNewFiles = (files) => {
     setQueueDismissed(false);
-    processFiles(files);
-    // Also add files to local library
-    addLocalFiles(files);
-  };
-
-  const handleLocalUpload = (files) => {
-    addLocalFiles(files);
+    if (processFiles) processFiles(files);
+    if (addLocalFiles) addLocalFiles(files);
   };
 
   return (
@@ -55,7 +56,6 @@ function AppContent() {
       {user && selectedProfile && (
         <Navbar
           onScan={handleNewFiles}
-          onLocalUpload={handleLocalUpload}
           isProcessing={isProcessing}
           processingCount={processingCount}
           library={library}
@@ -88,6 +88,7 @@ function AppContent() {
                   updateItem={updateItem}
                   clearRecentlyAdded={clearRecentlyAdded}
                   clearRecentlyAddedLocal={clearRecentlyAddedLocal}
+                  clearRecentlyAddedExceptLast={clearRecentlyAddedExceptLast}
                   processFiles={handleNewFiles}
                 />
               ) : (

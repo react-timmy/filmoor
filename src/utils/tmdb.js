@@ -1,5 +1,5 @@
 // TMDB API helper — add your free key from https://www.themoviedb.org/settings/api
-export const TMDB_KEY = 'be9ca528fcf90531cf687c11c26a4c90';  // ← paste your key here
+export const TMDB_KEY = import.meta.env.VITE_TMDB_KEY || 'be9ca528fcf90531cf687c11c26a4c90';  // Load from environment variable
 const BASE = 'https://api.themoviedb.org/3';
 const IMG_W500 = 'https://image.tmdb.org/t/p/w500';
 const IMG_W1280 = 'https://image.tmdb.org/t/p/w1280';

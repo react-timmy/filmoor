@@ -1,9 +1,47 @@
-import { useState } from "react";
-import { IconPlay, IconInfo } from "./Icons";
+import { useState, useEffect } from "react";
+import { IconPlay } from "./Icons";
+
+// Extract dominant color from image using canvas sampling
+function getImageDominantColor(imageElement) {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 150;
+    canvas.height = 150;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(imageElement, 0, 0, 150, 150);
+    
+    const imageData = ctx.getImageData(0, 0, 150, 150);
+    const data = imageData.data;
+    
+    let r = 0, g = 0, b = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      r += data[i];
+      g += data[i + 1];
+      b += data[i + 2];
+    }
+    
+    const pixelCount = data.length / 4;
+    r = Math.floor(r / pixelCount);
+    g = Math.floor(g / pixelCount);
+    b = Math.floor(b / pixelCount);
+    
+    return `rgb(${r}, ${g}, ${b})`;
+  } catch (e) {
+    return "rgb(232, 55, 44)";
+  }
+}
 
 export default function Hero({ item, onInfo, onPlay }) {
-  const [loaded, setLoaded] = useState(false);
   if (!item) return null;
+
+  const [loaded, setLoaded] = useState(false);
+  const [dominantColor, setDominantColor] = useState("rgb(232, 55, 44)");
+
+  const handleImageLoad = (e) => {
+    setLoaded(true);
+    const color = getImageDominantColor(e.target);
+    setDominantColor(color);
+  };
 
   const isTV = item.type === "tv" || item.type === "anime";
   const genres = item.genres?.length
@@ -18,255 +56,94 @@ export default function Hero({ item, onInfo, onPlay }) {
     }
   };
 
+  // Parse RGB for soft glow effect
+  const rgbValues = dominantColor.match(/\d+/g) || [232, 55, 44];
+  const shadowColor = `rgba(${rgbValues[0]}, ${rgbValues[1]}, ${rgbValues[2]}, 0.15)`;
+
   return (
     <div
+      data-hero-section
+      className="w-full px-4 py-6"
       style={{
-        position: "relative",
-        width: "100%",
-        minHeight: "500px",
-        height: "clamp(500px, 60vw, 750px)",
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
+        boxShadow: `0 8px 32px ${shadowColor}`,
       }}
     >
-      {/* Backdrop - positioned on right */}
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      {/* Hero Card Container - Mobile Netflix Design */}
+      <div
+        className="relative aspect-[2/3] overflow-hidden rounded-xl bg-black"
+        style={{
+          boxShadow: `inset 0 0 32px ${shadowColor}`,
+        }}
+      >
+        {/* Backdrop Image */}
         {item.backdrop ? (
           <img
             src={item.backdrop}
             alt=""
-            onLoad={() => setLoaded(true)}
+            onLoad={handleImageLoad}
+            className="absolute inset-0 w-full h-full object-cover object-center"
             style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "right center",
               opacity: loaded ? 1 : 0,
               transition: "opacity 0.8s ease",
             }}
           />
         ) : (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)",
-            }}
-          />
-        )}
-      </div>
-
-      {/* Left-side gradient overlay - creates dark safe zone for content */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(to right, rgba(7,9,16,0.95) 0%, rgba(7,9,16,0.85) 35%, rgba(7,9,16,0.4) 60%, transparent 100%)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Top fade for navbar */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 100,
-          background:
-            "linear-gradient(to bottom, rgba(7,9,16,0.6) 0%, transparent 100%)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Bottom fade */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 80,
-          background:
-            "linear-gradient(to top, rgba(7,9,16,0.8) 0%, transparent 100%)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Content Container - left side */}
-      <div
-        style={{
-          position: "relative",
-          zIndex: 2,
-          maxWidth: "550px",
-          width: "100%",
-          paddingLeft: "clamp(16px, 5%, 60px)",
-          paddingRight: "clamp(16px, 3%, 40px)",
-          animation: "fadeUp 0.7s ease both",
-        }}
-      >
-        {/* Genres badge */}
-        {genres.length > 0 && (
-          <div
-            style={{
-              display: "inline-flex",
-              gap: 8,
-              marginBottom: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            {genres.slice(0, 2).map((genre, i) => (
-              <span
-                key={i}
-                style={{
-                  color: "var(--gold)",
-                  fontSize: "clamp(11px, 1.2vw, 13px)",
-                  fontWeight: 600,
-                  letterSpacing: 0.5,
-                  textTransform: "uppercase",
-                }}
-              >
-                {genre}
-              </span>
-            ))}
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900" />
         )}
 
-        {/* Main Title */}
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(40px, 7vw, 72px)",
-            letterSpacing: "clamp(0.5px, 0.3vw, 2px)",
-            lineHeight: 0.9,
-            color: "var(--text)",
-            marginBottom: 20,
-            fontWeight: 900,
-            textShadow: "0 2px 8px rgba(0,0,0,0.4)",
-          }}
-        >
-          {item.title}
-        </h1>
-
-        {/* Meta info row */}
+        {/* Masking Gradient Overlay - Netflix Thrash Design */}
         <div
+          className="absolute inset-0 pointer-events-none"
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 20,
-            marginBottom: 24,
-            flexWrap: "wrap",
-            fontSize: "clamp(12px, 1.5vw, 14px)",
+            background: "linear-gradient(to top, #141414 10%, transparent 50%, rgba(0,0,0,0.3) 100%)",
           }}
-        >
-          {item.year && (
-            <span style={{ color: "var(--text2)" }}>{item.year}</span>
-          )}
-          {item.rating && (
-            <span style={{ color: "var(--gold)", fontWeight: 700 }}>
-              ★ {item.rating}
-            </span>
-          )}
-          {item.runtime && (
-            <span style={{ color: "var(--text2)" }}>
-              {Math.floor(item.runtime / 60)}h {item.runtime % 60}m
-            </span>
-          )}
-          {isTV && item.seasonNumber && (
-            <span style={{ color: "var(--text2)" }}>
-              {item.seasonNumber}{" "}
-              {item.seasonNumber === 1 ? "Season" : "Seasons"}
-            </span>
-          )}
-        </div>
+        />
 
-        {/* Overview description */}
-        {item.overview && (
-          <p
-            style={{
-              color: "var(--text2)",
-              fontSize: "clamp(13px, 1.5vw, 15px)",
-              lineHeight: 1.6,
-              maxWidth: 500,
-              marginBottom: 32,
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {item.overview}
-          </p>
-        )}
+        {/* Content Container - Positioned at bottom */}
+        <div className="absolute inset-x-0 bottom-0 z-10 p-4 flex flex-col justify-end h-full">
+          
+          {/* Title - Premium Typography */}
+          <h1 className="font-bebas uppercase text-5xl tracking-tighter text-white mb-2 font-black drop-shadow-2xl leading-tight">
+            {item.title}
+          </h1>
 
-        {/* Action buttons */}
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          <button
-            style={{
-              background: "var(--text)",
-              color: "var(--bg)",
-              border: "none",
-              padding: "clamp(10px, 1.2vw, 14px) clamp(20px, 3vw, 32px)",
-              borderRadius: 6,
-              fontSize: "clamp(13px, 1.3vw, 15px)",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              fontFamily: "var(--font-body)",
-              transition: "all 0.25s ease",
-              letterSpacing: 0.3,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.8";
-              e.currentTarget.style.transform = "scale(1.02)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "scale(1)";
-            }}
-          >
-            <IconPlay size={15} color="var(--bg)" /> Play
-          </button>
-          <button
-            onClick={() => onInfo(item)}
-            style={{
-              background: "rgba(255,255,255,0.15)",
-              backdropFilter: "blur(10px)",
-              color: "var(--text)",
-              border: "1.5px solid rgba(255,255,255,0.25)",
-              padding: "clamp(10px, 1.2vw, 14px) clamp(20px, 3vw, 32px)",
-              borderRadius: 6,
-              fontSize: "clamp(13px, 1.3vw, 15px)",
-              fontWeight: 600,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              fontFamily: "var(--font-body)",
-              transition: "all 0.25s ease",
-              letterSpacing: 0.3,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.22)";
-              e.currentTarget.style.transform = "scale(1.02)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.15)";
-              e.currentTarget.style.transform = "scale(1)";
-            }}
-          >
-            <IconInfo size={15} color="var(--text)" /> More Info
-          </button>
+          {/* Metadata Tags */}
+          {genres.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-4">
+              {genres.slice(0, 3).map((genre, i) => (
+                <span
+                  key={i}
+                  className="text-gray-300 text-[11px] font-medium"
+                >
+                  {genre}
+                  {i < Math.min(2, genres.length - 1) && <span className="mx-1">•</span>}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Button Container */}
+          <div className="flex gap-2 w-full">
+            {/* Play Button */}
+            <button
+              onClick={handlePlay}
+              className="flex-1 bg-white text-black font-bold py-2 rounded-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-90 active:scale-95"
+            >
+              <IconPlay size={16} color="currentColor" />
+              <span>Play</span>
+            </button>
+
+            {/* My List Button */}
+            <button
+              onClick={() => onInfo(item)}
+              className="flex-1 bg-[#333]/70 text-white backdrop-blur-md font-bold py-2 rounded-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-90 active:scale-95 border border-gray-600/20"
+            >
+              <span>+ My List</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+

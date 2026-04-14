@@ -16,6 +16,8 @@ import {
   IconClock,
   IconSparkle,
   IconPause,
+  IconSearch,
+  IconDownload,
 } from "../components/Icons";
 
 export default function Home({
@@ -29,6 +31,7 @@ export default function Home({
   updateItem,
   clearRecentlyAdded,
   clearRecentlyAddedLocal,
+  clearRecentlyAddedExceptLast,
   processFiles,
 }) {
   const navigate = useNavigate();
@@ -68,199 +71,152 @@ export default function Home({
   const showSeries = filter !== "movies";
 
   return (
-    <div
-      style={{
-        background: "var(--bg)",
-        minHeight: "100vh",
-        paddingBottom: "clamp(24px,4vw,60px)",
-      }}
-    >
-      {/* Hero — starts at top, bleeds edge to edge */}
+    <div className="min-h-screen bg-gradient-to-b from-[#2D1620] via-[#1a0f14] to-[#070910]">
+      {/* Netflix Header - Premium Dark UI */}
+      <header className="sticky top-0 z-50 bg-gradient-to-b from-[#2D1620] to-[#1a0f14] border-b border-white/5">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+          {/* Logo + Title */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-accent rounded flex items-center justify-center">
+              <span className="text-white font-bebas text-xl font-black">N</span>
+            </div>
+            <h1 className="text-2xl font-bebas text-white tracking-wider">Home</h1>
+          </div>
+
+          {/* Right Icons */}
+          <div className="flex items-center gap-4">
+            <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              <IconDownload size={24} color="white" />
+            </button>
+            <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              <IconSearch size={24} color="white" />
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation Pills */}
+        <div className="px-4 sm:px-6 pb-4 flex gap-3 overflow-x-auto scrollbar-hide">
+          {[
+            ["all", "Shows"],
+            ["movies", "Movies"],
+            ["shows", "Categories"],
+          ].map(([k, l]) => (
+            <button
+              key={k}
+              onClick={() => setFilter(k)}
+              className={`flex-shrink-0 px-4 py-2 rounded-full border transition-all duration-200 whitespace-nowrap font-medium text-sm ${
+                filter === k
+                  ? "border-white bg-white/10 text-white"
+                  : "border-white/30 text-white/70 hover:border-white/50"
+              }`}
+            >
+              {l}
+              {k === "shows" && <span className="ml-2">▼</span>}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {/* Hero — Featured Content Card */}
       <Hero item={heroItem} onInfo={setSelectedItem} onPlay={handlePlayLocal} />
 
       {/* Max-width container for desktop */}
-      <div style={{ maxWidth: "1400px", margin: "0 auto", width: "100%" }}>
-        {/* Filter pills + stats — just below hero */}
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6">
+        {/* Stats Section — below hero */}
         <div
-          className="page-pad"
-          style={{
-            marginTop: -10,
-            marginBottom: 28,
-            position: "relative",
-            zIndex: 5,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
+          className="py-6 sm:py-8 -mt-2 sm:-mt-4 relative z-5 flex flex-wrap items-baseline gap-6 sm:gap-8"
         >
-          {/* Filter pills — outlined, active = slightly filled */}
-          <div style={{ display: "flex", gap: 7 }}>
-            {[
-              ["all", "All"],
-              ["movies", "Movies"],
-              ["shows", "Shows"],
-            ].map(([k, l]) => (
-              <button
-                key={k}
-                onClick={() => setFilter(k)}
-                style={{
-                  padding: "6px 16px",
-                  borderRadius: 99,
-                  border: `1px solid ${filter === k ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.18)"}`,
-                  background:
-                    filter === k ? "rgba(255,255,255,0.12)" : "transparent",
-                  color: filter === k ? "var(--text)" : "var(--text2)",
-                  fontSize: 13,
-                  fontWeight: filter === k ? 600 : 400,
-                  cursor: "pointer",
-                  transition: "all 0.18s",
-                  fontFamily: "var(--font-body)",
-                }}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
-
-          {/* Stats strip */}
-          <div
-            style={{
-              display: "flex",
-              gap: "clamp(12px,3vw,22px)",
-              alignItems: "baseline",
-              flexWrap: "wrap",
-            }}
-          >
-            {[
-              [stats.movies, stats.movies === 1 ? "Movie" : "Movies"],
-              [stats.series, stats.series === 1 ? "Series" : "Series Folders"],
-              [stats.watched, "Watched"],
-            ].map(([n, l]) => (
-              <div
-                key={l}
-                style={{ display: "flex", alignItems: "baseline", gap: 4 }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "clamp(16px,3.5vw,20px)",
-                    color: "var(--text)",
-                  }}
-                >
-                  {n}
-                </span>
-                <span style={{ fontSize: 12, color: "var(--text3)" }}>{l}</span>
-              </div>
-            ))}
-          </div>
+          {[
+            [stats.movies, stats.movies === 1 ? "Movie" : "Movies"],
+            [stats.series, stats.series === 1 ? "Series" : "Series Folders"],
+            [stats.watched, "Watched"],
+          ].map(([n, l]) => (
+            <div key={l} className="flex items-baseline gap-2">
+              <span className="font-bebas text-2xl sm:text-3xl text-white tracking-wide">
+                {n}
+              </span>
+              <span className="text-xs sm:text-sm text-gray-400">{l}</span>
+            </div>
+          ))}
         </div>
 
         {/* Continue Watching */}
         {watching.length > 0 && (
-          <Carousel title="Continue Watching" icon={IconPause}>
-            {watching.map((item) => (
-              <WideCard
-                key={item.id}
-                item={item}
-                onClick={(i) => handleItemClick(i, i.isLocal)}
-                onPlay={handlePlayLocal}
-              />
-            ))}
-          </Carousel>
+          <section className="py-8 border-t border-white/5">
+            <Carousel title="Continue Watching" icon={IconPause}>
+              {watching.map((item) => (
+                <WideCard
+                  key={item.id}
+                  item={item}
+                  onClick={(i) => handleItemClick(i, i.isLocal)}
+                  onPlay={handlePlayLocal}
+                />
+              ))}
+            </Carousel>
+          </section>
         )}
 
         {/* Recently Watched */}
         {recentlyWatched.length > 0 && (
-          <Carousel title="Recently Watched" icon={IconClock}>
-            {recentlyWatched.map((item) => (
-              <WideCard
-                key={item.id}
-                item={item}
-                onClick={(i) => handleItemClick(i, i.isLocal)}
-                onPlay={handlePlayLocal}
-              />
-            ))}
-          </Carousel>
+          <section className="py-8 border-t border-white/5">
+            <Carousel title="Recently Watched" icon={IconClock}>
+              {recentlyWatched.map((item) => (
+                <WideCard
+                  key={item.id}
+                  item={item}
+                  onClick={(i) => handleItemClick(i, i.isLocal)}
+                  onPlay={handlePlayLocal}
+                />
+              ))}
+            </Carousel>
+          </section>
         )}
 
         {/* Movies */}
         {showMovies && movies.length > 0 && (
-          <Carousel title="Movies" icon={IconFilm}>
-            {movies.map((item) => (
-              <PosterCard
-                key={item.id}
-                item={item}
-                onClick={(i) => handleItemClick(i, i.isLocal)}
-                onPlay={handlePlayLocal}
-              />
-            ))}
-          </Carousel>
+          <section className="py-8 border-t border-white/5">
+            <Carousel title="Movies" icon={IconFilm}>
+              {movies.map((item) => (
+                <PosterCard
+                  key={item.id}
+                  item={item}
+                  onClick={(i) => handleItemClick(i, i.isLocal)}
+                  onPlay={handlePlayLocal}
+                />
+              ))}
+            </Carousel>
+          </section>
         )}
 
         {/* Series & Anime */}
         {showSeries && series.length > 0 && (
-          <Carousel title="Series & Anime" icon={IconTV}>
-            {series.map((s) => (
-              <SeriesCard key={s.id} series={s} onClick={setSelectedSeries} />
-            ))}
-          </Carousel>
+          <section className="py-8 border-t border-white/5">
+            <Carousel title="Series & Anime" icon={IconTV}>
+              {series.map((s) => (
+                <SeriesCard key={s.id} series={s} onClick={setSelectedSeries} />
+              ))}
+            </Carousel>
+          </section>
         )}
 
         {/* Recently Added */}
         {recentlyAdded.length > 0 && (
-          <Carousel title="Recently Added" icon={IconSparkle}>
-            {recentlyAdded.map((item) => (
-              <PosterCard
-                key={item.id}
-                item={item}
-                onClick={(i) => handleItemClick(i, i.isLocal)}
-                onPlay={handlePlayLocal}
-              />
-            ))}
-          </Carousel>
-        )}
-
-        {/* Clear recently added button — separate from carousel */}
-        {recentlyAdded.length > 0 && (
-          <div
-            style={{
-              paddingLeft: "var(--page-pad)",
-              paddingRight: "var(--page-pad)",
-              marginBottom: 20,
-              marginTop: -20,
-            }}
-          >
-            <button
-              onClick={() => {
-                clearRecentlyAdded();
-                if (clearRecentlyAddedLocal) clearRecentlyAddedLocal();
-              }}
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.14)",
-                color: "var(--text2)",
-                padding: "6px 14px",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                fontFamily: "var(--font-body)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                e.currentTarget.style.color = "var(--text)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-                e.currentTarget.style.color = "var(--text2)";
-              }}
+          <section className="py-8 border-t border-white/5 pb-12">
+            <Carousel 
+              title="Recently Added" 
+              icon={IconSparkle}
+              onClear={() => clearRecentlyAddedExceptLast(5)}
             >
-              Clear
-            </button>
-          </div>
+              {recentlyAdded.map((item) => (
+                <PosterCard
+                  key={item.id}
+                  item={item}
+                  onClick={(i) => handleItemClick(i, i.isLocal)}
+                  onPlay={handlePlayLocal}
+                />
+              ))}
+            </Carousel>
+          </section>
         )}
 
         {/* Modals */}

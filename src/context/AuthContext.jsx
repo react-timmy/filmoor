@@ -10,14 +10,26 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem("authToken"));
 
-  const api = axios.create({
-    baseURL: "/api",
+  // Create axios instance - will be updated when token changes
+  const [api, setApi] = useState(() => {
+    const instance = axios.create({
+      baseURL: "/api",
+    });
+    const storedToken = localStorage.getItem("authToken");
+    if (storedToken) {
+      instance.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
+    }
+    return instance;
   });
 
-  // Set token in headers
-  if (token) {
-    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-  }
+  // Update axios headers whenever token changes
+  useEffect(() => {
+    if (token) {
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    } else {
+      delete api.defaults.headers.common["Authorization"];
+    }
+  }, [token, api]);
 
   // Check if user is logged in on mount and validate token
   useEffect(() => {
@@ -76,7 +88,6 @@ export function AuthProvider({ children }) {
       setToken(newToken);
       setUser(newUser);
       setProfiles([]);
-      api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
 
       return { success: true };
     } catch (error) {
@@ -114,7 +125,6 @@ export function AuthProvider({ children }) {
       setToken(newToken);
       setUser(newUser);
       setProfiles(newUser.profiles || []);
-      api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
 
       return { success: true };
     } catch (error) {
@@ -190,8 +200,6 @@ export function AuthProvider({ children }) {
     setUser(null);
     setProfiles([]);
     setSelectedProfile(null);
-
-    delete api.defaults.headers.common["Authorization"];
   };
 
   return (

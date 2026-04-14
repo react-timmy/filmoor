@@ -135,6 +135,14 @@ function stripSeasonInTitle(title) {
   return { cleanTitle: title, season: null };
 }
 
+function extractTitleFromFilename(filenameOrMatch) {
+  // Remove year patterns (1900-2099)
+  let t = filenameOrMatch.replace(/\s+(?:19|20)\d{2}\b/g, "");
+  // Remove anything after common release group indicators or year-like numbers
+  t = t.split(/\s+\[/)[0]; // Remove [GROUP] tags
+  return t.trim();
+}
+
 function formatPath(item) {
   if (item.type === "tv") {
     const s = String(item.seasonNumber || 1).padStart(2, "0");
@@ -156,6 +164,11 @@ function formatPath(item) {
 // ── Main parse function ────────────────────────────────────────────────
 
 export function parseFilename(originalFilename) {
+  // ── Pre-flight checks (before heavy stripping) ─────────────────────────
+  // Look for episode patterns in original filename to determine type early
+  const hasEpisodePattern = /[ES]\d{1,3}/i.test(originalFilename);
+  const hasSeasonsEpisodes = /S\d{1,2}\s*E\d{1,3}/i.test(originalFilename);
+  
   const hasMovieKW =
     /\b(?:the\.?movie|motion\.?picture|telesync|hdcam|screener|dvdscr|cam\.?rip)\b/i.test(
       originalFilename,
@@ -168,10 +181,11 @@ export function parseFilename(originalFilename) {
 
   // ── 1. Multi-episode: S01E01E02, S01E01-E02, S01E01-03 ────────────────
   const multiEpPattern =
-    /^(.+?)\s+S(\d{1,2})\s*E(\d{1,3})[-–]E?(\d{1,3})\s*(?:-\s*)?(.*)$/i;
+    /^(.+?)\s+S(\d{1,2})\s*E(\d{1,3})(?:[-–]?E)?(\d{1,3})\s*(?:-\s*)?(.*)$/i;
   const multiM = cleaned.match(multiEpPattern);
   if (multiM) {
-    const show = titleCase(multiM[1].trim());
+    const titleRaw = extractTitleFromFilename(multiM[1]);
+    const show = titleCase(titleRaw);
     const sn = parseInt(multiM[2]),
       en = parseInt(multiM[3]),
       enEnd = parseInt(multiM[4]);
@@ -195,7 +209,8 @@ export function parseFilename(originalFilename) {
   const tvStandard = /^(.+?)\s+S(\d{1,2})\s*E(\d{1,3})\s*(?:-\s*)?(.*)$/i;
   const tvM = cleaned.match(tvStandard);
   if (tvM) {
-    const show = titleCase(tvM[1].trim());
+    const titleRaw = extractTitleFromFilename(tvM[1]);
+    const show = titleCase(titleRaw);
     let epTitle = tvM[4] ? titleCase(tvM[4].trim()) : null;
     if (epTitle && (epTitle.length < 2 || /^[se]$/i.test(epTitle)))
       epTitle = null;
@@ -211,6 +226,7 @@ export function parseFilename(originalFilename) {
       episodeTitle: epTitle,
       confidence: 97,
       cleanedFilename: `${show} - S${String(sn).padStart(2, "0")}E${String(en).padStart(2, "0")}${epTitle ? ` - ${epTitle}` : ""}.mp4`,
+      isMultiEpisode: false,
     };
   }
 
@@ -219,7 +235,8 @@ export function parseFilename(originalFilename) {
     /^(.+?)\s+(\d{1,2})x(\d{1,3})\s*(?:-\s*)?(.*)$/i,
   );
   if (altTvM) {
-    const show = titleCase(altTvM[1].trim());
+    const titleRaw = extractTitleFromFilename(altTvM[1]);
+    const show = titleCase(titleRaw);
     const sn = parseInt(altTvM[2]),
       en = parseInt(altTvM[3]);
     let epTitle = altTvM[4] ? titleCase(altTvM[4].trim()) : null;
@@ -234,6 +251,7 @@ export function parseFilename(originalFilename) {
       episodeTitle: epTitle,
       confidence: 93,
       cleanedFilename: `${show} - S${String(sn).padStart(2, "0")}E${String(en).padStart(2, "0")}.mp4`,
+      isMultiEpisode: false,
     };
   }
 
@@ -242,7 +260,8 @@ export function parseFilename(originalFilename) {
     /^(.+?)\s+Season\s*(\d{1,2})\s+Episode\s*(\d{1,3})\s*(?:-\s*)?(.*)$/i,
   );
   if (longTvM) {
-    const show = titleCase(longTvM[1].trim());
+    const titleRaw = extractTitleFromFilename(longTvM[1]);
+    const show = titleCase(titleRaw);
     const sn = parseInt(longTvM[2]),
       en = parseInt(longTvM[3]);
     return {
@@ -255,6 +274,7 @@ export function parseFilename(originalFilename) {
       episodeTitle: longTvM[4] ? titleCase(longTvM[4].trim()) : null,
       confidence: 95,
       cleanedFilename: `${show} - S${String(sn).padStart(2, "0")}E${String(en).padStart(2, "0")}.mp4`,
+      isMultiEpisode: false,
     };
   }
 
@@ -263,7 +283,8 @@ export function parseFilename(originalFilename) {
     /^(.+?)\s+(?:OVA|ONA|OAD|Special|Movie|Film)\s*(\d{0,3})\s*(?:-\s*)?(.*)$/i,
   );
   if (ovaM && !hasMovieKW) {
-    const show = titleCase(ovaM[1].trim());
+    const titleRaw = extractTitleFromFilename(ovaM[1]);
+    const show = titleCase(titleRaw);
     const label =
       cleaned.match(/\b(OVA|ONA|OAD|Special|Movie)\b/i)?.[1]?.toUpperCase() ||
       "SPECIAL";
@@ -273,21 +294,29 @@ export function parseFilename(originalFilename) {
       year: null,
       seasonNumber: 0,
       episodeNumber: ovaM[2] ? parseInt(ovaM[2]) : 1,
+      episodeEnd: null,
       episodeTitle: `${label}${ovaM[2] ? " " + ovaM[2] : ""}${ovaM[3] ? " - " + titleCase(ovaM[3]) : ""}`,
       confidence: 88,
       cleanedFilename: `${show} - ${label}${ovaM[2] ? ovaM[2].padStart(2, "0") : ""}.mp4`,
       isSpecial: true,
+      isMultiEpisode: false,
     };
   }
 
   // ── 6. Anime with long ep numbers (One Piece 1050, Naruto 220) ─────────
+  // IMPORTANT: Only match if NOT preceded by resolution context (like .360p)
   const animeHighEp = cleaned.match(/^(.+?)\s*[-–]\s*(\d{3,4})(?:\s|$)/);
   if (animeHighEp && !hasMovieKW) {
     const epNum = parseInt(animeHighEp[2]);
-    const isRes = [360, 480, 540, 720, 1080, 2160].includes(epNum);
-    if (!isRes && epNum <= 2000) {
-      const { cleanTitle, season } = stripSeasonInTitle(animeHighEp[1].trim());
-      const show = titleCase(cleanTitle);
+    // Exclude common resolutions: 240, 360, 480, 540, 720, 1080, 2160, 4320
+    const commonResolutions = [240, 360, 480, 540, 720, 1080, 2160, 4320];
+    const isRes = commonResolutions.includes(epNum);
+    // Exclude years (1900-2099)
+    const isYear = epNum >= 1900 && epNum <= 2099;
+    if (!isRes && !isYear && epNum >= 100 && epNum <= 2000) {
+      const titleRaw = extractTitleFromFilename(animeHighEp[1]);
+      const { cleanTitle, season } = stripSeasonInTitle(titleCase(titleRaw));
+      const show = cleanTitle;
       return {
         title: show,
         type: "anime",
@@ -298,18 +327,24 @@ export function parseFilename(originalFilename) {
         episodeTitle: null,
         confidence: 87,
         cleanedFilename: `${show} - ${String(epNum).padStart(3, "0")}.mp4`,
+        isMultiEpisode: false,
       };
     }
   }
 
   // ── 7. Standard anime dash-episode: "Show - 05" ────────────────────────
+  // Only match if we detected episode pattern in original filename
   const animeM = cleaned.match(/^(.+?)\s*[-–]\s*(\d{1,3})(?:\s*[-–]\s*(.+))?$/);
-  if (animeM && !hasMovieKW) {
+  if (animeM && !hasMovieKW && hasEpisodePattern) {
     const epNum = parseInt(animeM[2]);
-    const isRes = [360, 480, 540, 720, 1080, 2160].includes(epNum);
-    if (!isRes && epNum >= 1 && epNum < 500) {
-      const { cleanTitle, season } = stripSeasonInTitle(animeM[1].trim());
-      const show = titleCase(cleanTitle);
+    const commonResolutions = [240, 360, 480, 540, 720, 1080, 2160, 4320];
+    const isRes = commonResolutions.includes(epNum);
+    // Also exclude years (2019, 2020, etc.) — these look like "201", "202" when truncated
+    const isLikelyYear = epNum >= 190 && epNum <= 225; // covers 1900-2259 when truncated to 3 digits
+    if (!isRes && !isLikelyYear && epNum >= 1 && epNum < 500) {
+      const titleRaw = extractTitleFromFilename(animeM[1]);
+      const { cleanTitle, season } = stripSeasonInTitle(titleCase(titleRaw));
+      const show = cleanTitle;
       const sn = season || 1;
       return {
         title: show,
@@ -321,6 +356,7 @@ export function parseFilename(originalFilename) {
         episodeTitle: animeM[3] ? titleCase(animeM[3].trim()) : null,
         confidence: 85,
         cleanedFilename: `${show} - ${String(epNum).padStart(2, "0")}.mp4`,
+        isMultiEpisode: false,
       };
     }
   }
@@ -330,8 +366,9 @@ export function parseFilename(originalFilename) {
   if (standM && !hasMovieKW) {
     const epNum = parseInt(standM[2]);
     if (epNum >= 1 && epNum <= 99) {
-      const { cleanTitle, season } = stripSeasonInTitle(standM[1].trim());
-      const show = titleCase(cleanTitle);
+      const titleRaw = extractTitleFromFilename(standM[1]);
+      const { cleanTitle, season } = stripSeasonInTitle(titleCase(titleRaw));
+      const show = cleanTitle;
       return {
         title: show,
         type: "anime",
@@ -342,32 +379,36 @@ export function parseFilename(originalFilename) {
         episodeTitle: null,
         confidence: 78,
         cleanedFilename: `${show} - ${String(epNum).padStart(2, "0")}.mp4`,
+        isMultiEpisode: false,
       };
     }
   }
 
   // ── 9. E## only ────────────────────────────────────────────────────────
+  // This must run BEFORE movie detection to catch "Show E##" patterns
   const epOnlyM = cleaned.match(
     /^(.+?)\s*[-–]?\s*E(\d{1,3})(?:\s*[-–]\s*(.+))?$/i,
   );
   if (epOnlyM && !hasMovieKW) {
     const epNum = parseInt(epOnlyM[2]);
     if (epNum > 0 && epNum < 500) {
-      const { cleanTitle, season } = stripSeasonInTitle(epOnlyM[1].trim());
-      const show = titleCase(cleanTitle);
+      const titleRaw = extractTitleFromFilename(epOnlyM[1]);
+      const { cleanTitle, season } = stripSeasonInTitle(titleCase(titleRaw));
+      const show = cleanTitle;
       const sn = season || 1;
       let epTitle = epOnlyM[3] ? titleCase(epOnlyM[3].trim()) : null;
       if (epTitle && epTitle.length < 2) epTitle = null;
       return {
         title: show,
         type: "tv",
-        year: null,
+        year: extractYear(epOnlyM[1]),
         seasonNumber: sn,
         episodeNumber: epNum,
         episodeEnd: null,
         episodeTitle: epTitle,
-        confidence: 83,
-        cleanedFilename: `${show} - S${String(sn).padStart(2, "0")}E${String(epNum).padStart(2, "0")}.mp4`,
+        confidence: 95,
+        cleanedFilename: `${show} - S${String(sn).padStart(2, "0")}E${String(epNum).padStart(2, "0")}${epTitle ? ` - ${epTitle}` : ""}.mp4`,
+        isMultiEpisode: false,
       };
     }
   }
@@ -377,7 +418,8 @@ export function parseFilename(originalFilename) {
     /^(.+?)\s+(?:Part|Pt)\.?\s*(\d+|[IVX]+)\s*(?:[-–:]\s*(.+))?$/i,
   );
   if (partM && !partM[1].match(/S\d{1,2}$/i)) {
-    const base = titleCase(partM[1].trim());
+    const titleRaw = extractTitleFromFilename(partM[1]);
+    const base = titleCase(titleRaw);
     const partNum = ROMAN[partM[2].toLowerCase()] || partM[2];
     const subtitle = partM[3] ? titleCase(partM[3].trim()) : null;
     const movieTitle = `${base} Part ${partNum}${subtitle ? ": " + subtitle : ""}`;
@@ -392,6 +434,7 @@ export function parseFilename(originalFilename) {
       confidence: 82,
       cleanedFilename: `${movieTitle}.mp4`,
       isPart: true,
+      isMultiEpisode: false,
     };
   }
 
@@ -403,25 +446,98 @@ export function parseFilename(originalFilename) {
     let mt = cleaned,
       year = null;
     if (yearM) {
-      mt = yearM[1].trim();
-      year = parseInt(yearM[2]);
+      // Only treat as year pattern if title is reasonable length (not just a single word)
+      const titleRaw = extractTitleFromFilename(yearM[1]);
+      const titleWords = titleRaw.trim().split(/\s+/).length;
+      
+      // If title is just one word and looks like "The Movie 2019", skip this pattern
+      // and let it fall through to other patterns
+      if (titleWords > 1 || titleRaw.trim().length > 5) {
+        mt = titleRaw.trim();
+        year = parseInt(yearM[2]);
+      } else {
+        // Skip year pattern for short titles like "The", which are likely false matches
+        // Allow patterns to continue to other matchers
+        year = null;
+      }
     }
-    mt = mt.replace(/\s*[-–]?\s*the\s*movie\s*/gi, " ").trim();
-    mt = titleCase(mt);
-    return {
-      title: mt,
-      type: "movie",
-      year,
-      seasonNumber: null,
-      episodeNumber: null,
-      episodeEnd: null,
-      episodeTitle: null,
-      confidence: hasMovieKW ? 95 : 86,
-      cleanedFilename: year ? `${mt} (${year}).mp4` : `${mt}.mp4`,
-    };
+    
+    if (year || hasMovieKW) {
+      mt = mt.replace(/\s*[-–]?\s*the\s*movie\s*/gi, " ").trim();
+      mt = titleCase(mt);
+      return {
+        title: mt,
+        type: "movie",
+        year,
+        seasonNumber: null,
+        episodeNumber: null,
+        episodeEnd: null,
+        episodeTitle: null,
+        confidence: hasMovieKW ? 95 : 86,
+        cleanedFilename: year ? `${mt} (${year}).mp4` : `${mt}.mp4`,
+        isMultiEpisode: false,
+      };
+    }
   }
 
-  // ── 12. Fallback: treat as movie ───────────────────────────────────────
+  // ── 12. Final check: detect episodes in original filename if missed ─────
+  // This catches cases where aggressive stripping missed episode patterns
+  // Handle dots, dashes, and spaces as separators in the original filename
+  if (hasEpisodePattern && !hasMovieKW) {
+    // Normalize separators to spaces for matching, but preserve original for title extraction
+    const normalizedForMatch = originalFilename.replace(/[\.\-_\s]+/g, " ");
+    
+    // First try S##E## pattern  
+    const origSEPattern = /^(.+?)\s+S(\d{1,2})\s*E(\d{1,3})/i;
+    const origSEMatch = normalizedForMatch.match(origSEPattern);
+    if (origSEMatch) {
+      const titleRaw = extractTitleFromFilename(origSEMatch[1]);
+      const title = titleCase(titleRaw);
+      const sn = parseInt(origSEMatch[2]);
+      const epNum = parseInt(origSEMatch[3]);
+      if (epNum > 0 && epNum < 500 && sn > 0 && sn < 100 && title.length > 1) {
+        return {
+          title,
+          type: isAnimeSource ? "anime" : "tv",
+          year: extractYear(originalFilename),
+          seasonNumber: sn,
+          episodeNumber: epNum,
+          episodeEnd: null,
+          episodeTitle: null,
+          confidence: 94,
+          cleanedFilename: `${title} - S${String(sn).padStart(2, "0")}E${String(epNum).padStart(2, "0")}.mp4`,
+          isMultiEpisode: false,
+        };
+      }
+    }
+    
+    // Then try E## only pattern from original filename
+    // This handles: "Show E11", "Show.E11", "Show - E11"
+    const origEpPattern = /^(.+?)\s+E(\d{1,3})/i;
+    const origMatch = normalizedForMatch.match(origEpPattern);
+    if (origMatch) {
+      const titleRaw = extractTitleFromFilename(origMatch[1]);
+      const titleCased = titleCase(titleRaw);
+      const epNum = parseInt(origMatch[2]);
+      if (epNum > 0 && epNum < 500 && titleCased.length > 1) {
+        const { cleanTitle, season } = stripSeasonInTitle(titleCased);
+        return {
+          title: cleanTitle,
+          type: isAnimeSource ? "anime" : "tv",
+          year: extractYear(originalFilename),
+          seasonNumber: season || 1,
+          episodeNumber: epNum,
+          episodeEnd: null,
+          episodeTitle: null,
+          confidence: 92,
+          cleanedFilename: `${cleanTitle} - S${String(season || 1).padStart(2, "0")}E${String(epNum).padStart(2, "0")}.mp4`,
+          isMultiEpisode: false,
+        };
+      }
+    }
+  }
+
+  // ── 13. Fallback: treat as movie ───────────────────────────────────────
   const ft = titleCase(cleaned);
   if (ft.length > 2 && ft.length < 120) {
     return {
@@ -434,6 +550,7 @@ export function parseFilename(originalFilename) {
       episodeTitle: null,
       confidence: 38,
       cleanedFilename: `${ft}.mp4`,
+      isMultiEpisode: false,
     };
   }
 
@@ -447,6 +564,7 @@ export function parseFilename(originalFilename) {
     episodeTitle: null,
     confidence: 0,
     cleanedFilename: originalFilename,
+    isMultiEpisode: false,
   };
 }
 

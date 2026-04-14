@@ -228,3 +228,14 @@ a {
     width: 300px;
   }
 }
+
+/* ── Hero section responsive image ── */
+.hero-backdrop-img {
+  object-position: right center !important;
+}
+
+@media (max-width: 768px) {
+  .hero-backdrop-img {
+    object-position: center center !important;
+  }
+}

@@ -1,10 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import {
+  parseFilenameSync,
   parseFilename,
-  checkDuration,
-  getSuggestedPath,
-  MIN_DURATION_SECONDS,
-} from "../utils/parser";
+} from "../utils/parserMode";
+import { checkDuration, getSuggestedPath, MIN_DURATION_SECONDS } from "../utils/parser";
 import { fetchTMDB } from "../utils/tmdb";
 import { useAuth } from "../hooks/useAuth";
 
@@ -117,7 +116,7 @@ export function useLibrary() {
       );
 
       try {
-        const parsed = parseFilename(qItem.file.name);
+        const parsed = await parseFilename(qItem.file.name);
 
         // Step 3: TMDB enrichment
         const meta = await fetchTMDB(parsed.title, parsed.year, parsed.type);
@@ -212,6 +211,18 @@ export function useLibrary() {
     );
   }, []);
 
+  const clearRecentlyAddedExceptLast = useCallback((count = 5) => {
+    // Keep only the last N items in recently added, reset the rest
+    setLibrary((prev) => {
+      const sorted = [...prev].sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+      const keepIds = new Set(sorted.slice(0, count).map((i) => i.id));
+      return prev.map((item) => ({
+        ...item,
+        addedAt: keepIds.has(item.id) ? item.addedAt : new Date(0).toISOString(),
+      }));
+    });
+  }, []);
+
   // Derived collections
   const movies = library.filter((i) => i.type === "movie");
   const tvShows = library.filter((i) => i.type === "tv" || i.type === "anime");
@@ -261,6 +272,7 @@ export function useLibrary() {
     removeItem,
     clearLibrary,
     clearRecentlyAdded,
+    clearRecentlyAddedExceptLast,
     movies,
     tvShows,
     series,

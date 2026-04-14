@@ -27,6 +27,7 @@ export default {
       },
       fontFamily: {
         display: ['"Bebas Neue"', 'Impact', 'sans-serif'],
+        bebas: ['"Bebas Neue"', 'Impact', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif']
       },
       spacing: {
@@ -37,7 +38,8 @@ export default {
         shimmer: 'shimmer 1.5s infinite',
         'fade-in': 'fadeIn 0.3s ease-out',
         'slide-up': 'slideUp 0.3s ease-out',
-        'scale-in': 'scaleIn 0.2s ease-out'
+        'scale-in': 'scaleIn 0.2s ease-out',
+        fadeUp: 'fadeUp 0.7s ease both'
       },
       keyframes: {
         shimmer: {
@@ -55,6 +57,10 @@ export default {
         scaleIn: {
           '0%': { opacity: '0', transform: 'scale(0.95)' },
           '100%': { opacity: '1', transform: 'scale(1)' }
+        },
+        fadeUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' }
         }
       }
     }

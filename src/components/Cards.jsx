@@ -247,7 +247,7 @@ export function SeriesCard({ series, onClick }) {
 }
 
 // ── Carousel ───────────────────────────────────────────────────────────────
-export function Carousel({ title, icon: Icon, children }) {
+export function Carousel({ title, icon: Icon, children, onClear }) {
   const scrollRef = useRef();
   const items = Array.isArray(children) ? children.filter(Boolean) : children ? [children] : [];
   if (!items.length) return null;
@@ -272,30 +272,60 @@ export function Carousel({ title, icon: Icon, children }) {
           {Icon && <Icon size={16} color="var(--text2)" />}
           {title}
         </h2>
-        {/* Arrow buttons — desktop only */}
-        <div className="hide-mobile" style={{ display: 'flex', gap: 5 }}>
-          <button onClick={() => scroll(-1)} style={{
-            width: 28, height: 28, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-            color: 'var(--text2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'background 0.15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.14)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
-          >
-            <IconChevronLeft size={14} color="var(--text2)" />
-          </button>
-          <button onClick={() => scroll(1)} style={{
-            width: 28, height: 28, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-            color: 'var(--text2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'background 0.15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.14)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
-          >
-            <IconChevronRight size={14} color="var(--text2)" />
-          </button>
+         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Clear button for Recently Added */}
+          {onClear && (
+            <button
+              onClick={onClear}
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                color: "var(--text2)",
+                padding: "6px 14px",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                fontFamily: "var(--font-body)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                e.currentTarget.style.color = "var(--text)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                e.currentTarget.style.color = "var(--text2)";
+              }}
+            >
+              Clear (keep 5)
+            </button>
+          )}
+          {/* Arrow buttons — desktop only */}
+          <div className="hide-mobile" style={{ display: 'flex', gap: 5 }}>
+            <button onClick={() => scroll(-1)} style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+              color: 'var(--text2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.15s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.14)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+            >
+              <IconChevronLeft size={14} color="var(--text2)" />
+            </button>
+            <button onClick={() => scroll(1)} style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+              color: 'var(--text2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.15s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.14)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+            >
+              <IconChevronRight size={14} color="var(--text2)" />
+            </button>
+          </div>
         </div>
       </div>
 

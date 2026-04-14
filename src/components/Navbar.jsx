@@ -28,7 +28,6 @@ const AVATAR_IMAGES = {
 
 export default function Navbar({
   onScan,
-  onLocalUpload,
   isProcessing,
   processingCount,
   library,
@@ -81,19 +80,6 @@ export default function Navbar({
     inp.multiple = true;
     inp.accept = "video/*,.mkv,.avi,.mp4,.mov,.wmv,.webm";
     inp.onchange = (e) => onScan(Array.from(e.target.files));
-    inp.click();
-  };
-
-  const handleLocalUpload = () => {
-    const inp = document.createElement("input");
-    inp.type = "file";
-    inp.multiple = true;
-    inp.accept = "video/*,.mkv,.avi,.mp4,.mov,.wmv,.webm";
-    inp.onchange = (e) => {
-      if (onLocalUpload) {
-        onLocalUpload(Array.from(e.target.files));
-      }
-    };
     inp.click();
   };
 
@@ -405,38 +391,6 @@ export default function Navbar({
         >
           <IconScan size={14} color="#fff" />
           <span className="hide-mobile">Scan Files</span>
-        </button>
-
-        <button
-          onClick={handleLocalUpload}
-          style={{
-            background: "rgba(255,255,255,0.08)",
-            color: "#fff",
-            border: "1px solid rgba(255,255,255,0.18)",
-            padding: "0 14px",
-            height: 36,
-            borderRadius: 9,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.2s",
-            fontFamily: "var(--font-body)",
-            flexShrink: 0,
-            marginLeft: 8,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-            e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-            e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
-          }}
-        >
-          <span className="hide-mobile">Local Files</span>
         </button>
       </nav>
 

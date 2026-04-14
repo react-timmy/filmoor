@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLocalLibrary } from "../hooks/useLocalLibrary";
 import VideoPlayer from "../components/VideoPlayer";
-import { IconClose, IconTrash } from "../components/Icons";
 
 export default function LocalPlayer({ localLibrary }) {
   const navigate = useNavigate();
   const { fileId } = useParams();
-  const { updateLocalFile, removeLocalFile, getBlobUrl } = useLocalLibrary();
+  const { updateLocalFile, getBlobUrl } = useLocalLibrary();
   const [blobUrl, setBlobUrl] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -86,13 +85,6 @@ export default function LocalPlayer({ localLibrary }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm("Delete this file from your library?")) {
-      await removeLocalFile(fileId);
-      navigate("/");
-    }
-  };
-
   if (!currentFile) {
     return (
       <div
@@ -156,39 +148,6 @@ export default function LocalPlayer({ localLibrary }) {
           onNextEpisode={handleNextEpisode}
           onPrevEpisode={handlePrevEpisode}
         />
-
-        {/* Delete button overlay */}
-        <button
-          onClick={handleDelete}
-          style={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            width: 40,
-            height: 40,
-            borderRadius: 8,
-            background: "rgba(231, 76, 60, 0.2)",
-            border: "1px solid rgba(231, 76, 60, 0.4)",
-            color: "#e74c3c",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.2s",
-            zIndex: 100,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(231, 76, 60, 0.3)";
-            e.currentTarget.style.borderColor = "rgba(231, 76, 60, 0.6)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(231, 76, 60, 0.2)";
-            e.currentTarget.style.borderColor = "rgba(231, 76, 60, 0.4)";
-          }}
-          title="Delete this file"
-        >
-          <IconTrash size={18} color="#e74c3c" />
-        </button>
       </div>
     </div>
   );
